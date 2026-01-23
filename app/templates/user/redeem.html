@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GPT Team 兑换</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/user.css') }}">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -20,31 +24,17 @@
                 <form id="verifyForm">
                     <div class="form-group">
                         <label for="email">邮箱地址</label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            required
-                            placeholder="请输入您的邮箱地址"
-                            class="form-input"
-                        >
+                        <input type="email" id="email" name="email" required placeholder="请输入您的邮箱地址" class="form-input">
                         <p class="form-help">请使用您的常用邮箱,邀请将发送到此邮箱</p>
                     </div>
 
                     <div class="form-group">
                         <label for="code">兑换码</label>
-                        <input
-                            type="text"
-                            id="code"
-                            name="code"
-                            required
-                            placeholder="请输入兑换码"
-                            class="form-input"
-                        >
+                        <input type="text" id="code" name="code" required placeholder="请输入兑换码" class="form-input">
                     </div>
 
                     <button type="submit" class="btn btn-primary" id="verifyBtn">
-                        验证兑换码
+                        <i data-lucide="shield-check"></i> 验证兑换码
                     </button>
                 </form>
             </div>
@@ -61,8 +51,12 @@
                 </div>
 
                 <div class="actions">
-                    <button onclick="backToStep1()" class="btn btn-secondary">返回</button>
-                    <button onclick="autoSelectTeam()" class="btn btn-primary">自动选择</button>
+                    <button onclick="backToStep1()" class="btn btn-secondary">
+                        <i data-lucide="arrow-left"></i> 返回
+                    </button>
+                    <button onclick="autoSelectTeam()" class="btn btn-primary">
+                        <i data-lucide="zap"></i> 自动选择
+                    </button>
                 </div>
             </div>
         </div>
@@ -81,5 +75,9 @@
     <div id="toast" class="toast"></div>
 
     <script src="{{ url_for('static', path='/js/redeem.js') }}"></script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
+
 </html>

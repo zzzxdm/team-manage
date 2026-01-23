@@ -54,7 +54,14 @@ def format_datetime(dt):
             return dt
     return dt.strftime("%Y-%m-%d %H:%M")
 
+def escape_js(value):
+    """转义字符串用于 JavaScript"""
+    if not value:
+        return ""
+    return value.replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r")
+
 templates.env.filters["format_datetime"] = format_datetime
+templates.env.filters["escape_js"] = escape_js
 
 # 配置日志
 logging.basicConfig(

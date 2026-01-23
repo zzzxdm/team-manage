@@ -7,8 +7,16 @@ function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
     if (!toast) return;
 
-    toast.textContent = message;
+    let icon = 'info';
+    if (type === 'success') icon = 'check-circle';
+    if (type === 'error') icon = 'alert-circle';
+
+    toast.innerHTML = `<i data-lucide="${icon}"></i><span>${message}</span>`;
     toast.className = `toast ${type} show`;
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 
     setTimeout(() => {
         toast.classList.remove('show');

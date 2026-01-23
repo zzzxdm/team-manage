@@ -22,8 +22,18 @@ let selectedTeamId = null;
 // Toast提示函数
 function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
-    toast.textContent = message;
+    if (!toast) return;
+
+    let icon = 'info';
+    if (type === 'success') icon = 'check-circle';
+    if (type === 'error') icon = 'alert-circle';
+
+    toast.innerHTML = `<i data-lucide="${icon}"></i><span>${message}</span>`;
     toast.className = `toast ${type} show`;
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 
     setTimeout(() => {
         toast.classList.remove('show');
@@ -123,7 +133,7 @@ function renderTeamsList() {
             <div class="team-name">${escapeHtml(team.team_name) || 'Team ' + team.id}</div>
             <div class="team-info">
                 <div class="team-info-item">
-                    <span>👥</span>
+                    <i data-lucide="users" style="width: 14px; height: 14px;"></i>
                     <span>${team.current_members}/${team.max_members} 成员</span>
                 </div>
                 <div class="team-info-item">
@@ -131,7 +141,7 @@ function renderTeamsList() {
                 </div>
                 ${team.expires_at ? `
                 <div class="team-info-item">
-                    <span>⏰</span>
+                    <i data-lucide="calendar" style="width: 14px; height: 14px;"></i>
                     <span>到期: ${formatDate(team.expires_at)}</span>
                 </div>
                 ` : ''}
@@ -139,6 +149,7 @@ function renderTeamsList() {
         `;
 
         teamsList.appendChild(teamCard);
+        if (window.lucide) lucide.createIcons();
     });
 }
 
@@ -203,7 +214,7 @@ function showSuccessResult(data) {
 
     resultContent.innerHTML = `
         <div class="result-success">
-            <div class="result-icon">✅</div>
+            <div class="result-icon"><i data-lucide="check-circle" style="width: 64px; height: 64px; color: var(--success);"></i></div>
             <div class="result-title">兑换成功!</div>
             <div class="result-message">${escapeHtml(data.message) || '您已成功加入 Team'}</div>
 
@@ -224,15 +235,16 @@ function showSuccessResult(data) {
                 ` : ''}
             </div>
 
-            <p style="color: var(--secondary-color); font-size: 0.9rem; margin-bottom: 1rem;">
-                邀请邮件已发送到您的邮箱,请查收并接受邀请。
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                邀请邮件已发送到您的邮箱，请查收并按照邮件指引接受邀请。
             </p>
 
             <button onclick="location.reload()" class="btn btn-primary">
-                再次兑换
+                <i data-lucide="refresh-cw"></i> 再次兑换
             </button>
         </div>
     `;
+    if (window.lucide) lucide.createIcons();
 
     showStep(3);
 }
@@ -243,20 +255,21 @@ function showErrorResult(errorMessage) {
 
     resultContent.innerHTML = `
         <div class="result-error">
-            <div class="result-icon">❌</div>
+            <div class="result-icon"><i data-lucide="x-circle" style="width: 64px; height: 64px; color: var(--danger);"></i></div>
             <div class="result-title">兑换失败</div>
             <div class="result-message">${escapeHtml(errorMessage)}</div>
 
             <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
                 <button onclick="backToStep1()" class="btn btn-secondary">
-                    返回重试
+                    <i data-lucide="arrow-left"></i> 返回重试
                 </button>
                 <button onclick="location.reload()" class="btn btn-primary">
-                    重新开始
+                    <i data-lucide="rotate-ccw"></i> 重新开始
                 </button>
             </div>
         </div>
     `;
+    if (window.lucide) lucide.createIcons();
 
     showStep(3);
 }

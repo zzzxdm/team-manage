@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}GPT Team 管理系统{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+
+<body class="theme-premium-dark">
     {% if user %}
     <!-- 导航栏 -->
     <nav class="navbar">
@@ -29,31 +33,25 @@
             <ul class="sidebar-menu">
                 <li class="menu-item {% if active_page == 'dashboard' %}active{% endif %}">
                     <a href="/admin">
-                        <span class="menu-icon">📊</span>
+                        <span class="menu-icon" data-lucide="layout-dashboard"></span>
                         <span class="menu-text">控制台</span>
-                    </a>
-                </li>
-                <li class="menu-item {% if active_page == 'teams' %}active{% endif %}" style="display: none;">
-                    <a href="/admin/teams/import">
-                        <span class="menu-icon">👥</span>
-                        <span class="menu-text">Team导入</span>
                     </a>
                 </li>
                 <li class="menu-item {% if active_page == 'codes' %}active{% endif %}">
                     <a href="/admin/codes">
-                        <span class="menu-icon">🎫</span>
+                        <span class="menu-icon" data-lucide="ticket"></span>
                         <span class="menu-text">兑换码管理</span>
                     </a>
                 </li>
                 <li class="menu-item {% if active_page == 'records' %}active{% endif %}">
                     <a href="/admin/records">
-                        <span class="menu-icon">📝</span>
+                        <span class="menu-icon" data-lucide="file-text"></span>
                         <span class="menu-text">使用记录</span>
                     </a>
                 </li>
                 <li class="menu-item {% if active_page == 'settings' %}active{% endif %}">
                     <a href="/admin/settings">
-                        <span class="menu-icon">⚙️</span>
+                        <span class="menu-icon" data-lucide="settings"></span>
                         <span class="menu-text">系统设置</span>
                     </a>
                 </li>
@@ -86,15 +84,18 @@
             </div>
             <div class="modal-body">
                 <div class="modal-tabs">
-                    <button class="modal-tab-btn active" onclick="switchModalTab('importTeamModal', 'singleImport')">单个导入</button>
-                    <button class="modal-tab-btn" onclick="switchModalTab('importTeamModal', 'batchImport')">批量导入</button>
+                    <button class="modal-tab-btn active"
+                        onclick="switchModalTab('importTeamModal', 'singleImport')">单个导入</button>
+                    <button class="modal-tab-btn"
+                        onclick="switchModalTab('importTeamModal', 'batchImport')">批量导入</button>
                 </div>
 
                 <div id="singleImport" class="import-panel">
                     <form id="singleImportForm" onsubmit="handleSingleImport(event)">
                         <div class="form-group">
                             <label>Access Token (AT) <span class="required">*</span></label>
-                            <textarea name="accessToken" class="form-control" rows="4" placeholder="eyJhbGciOiJSUzI1Ni..." required></textarea>
+                            <textarea name="accessToken" class="form-control" rows="4"
+                                placeholder="eyJhbGciOiJSUzI1Ni..." required></textarea>
                             <small class="form-text">必填项，以 eyJ 开头的 JWT Token</small>
                         </div>
                         <div class="form-group">
@@ -104,7 +105,8 @@
                         </div>
                         <div class="form-group">
                             <label>Account ID</label>
-                            <input type="text" name="accountId" class="form-control" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                            <input type="text" name="accountId" class="form-control"
+                                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
                             <small class="form-text">可选，如果不填写将从 API 自动获取</small>
                         </div>
                         <button type="submit" class="btn btn-primary">导入</button>
@@ -115,7 +117,8 @@
                     <form id="batchImportForm" onsubmit="handleBatchImport(event)">
                         <div class="form-group">
                             <label>批量导入内容 <span class="required">*</span></label>
-                            <textarea name="batchContent" class="form-control" rows="8" placeholder="一行一个 AT Token..." required></textarea>
+                            <textarea name="batchContent" class="form-control" rows="8" placeholder="一行一个 AT Token..."
+                                required></textarea>
                         </div>
                         <div id="batchResultsContainer" style="display: none; margin-bottom: 1rem;">
                             <h4>导入结果</h4>
@@ -137,19 +140,23 @@
             </div>
             <div class="modal-body">
                 <div class="modal-tabs">
-                    <button class="modal-tab-btn active" onclick="switchModalTab('generateCodeModal', 'singleGenerate')">单个生成</button>
-                    <button class="modal-tab-btn" onclick="switchModalTab('generateCodeModal', 'batchGenerate')">批量生成</button>
+                    <button class="modal-tab-btn active"
+                        onclick="switchModalTab('generateCodeModal', 'singleGenerate')">单个生成</button>
+                    <button class="modal-tab-btn"
+                        onclick="switchModalTab('generateCodeModal', 'batchGenerate')">批量生成</button>
                 </div>
 
                 <div id="singleGenerate" class="card-body">
                     <form onsubmit="generateSingle(event)">
                         <div class="form-group">
                             <label>自定义兑换码 (可选)</label>
-                            <input type="text" name="customCode" class="form-control" placeholder="留空则自动生成" maxlength="32">
+                            <input type="text" name="customCode" class="form-control" placeholder="留空则自动生成"
+                                maxlength="32">
                         </div>
                         <div class="form-group">
                             <label>有效期 (天数, 可选)</label>
-                            <input type="number" name="expiresDays" class="form-control" placeholder="留空则永久有效" min="1" max="3650">
+                            <input type="number" name="expiresDays" class="form-control" placeholder="留空则永久有效" min="1"
+                                max="3650">
                         </div>
                         <button type="submit" class="btn btn-primary">生成兑换码</button>
                     </form>
@@ -166,18 +173,21 @@
                     <form onsubmit="generateBatch(event)">
                         <div class="form-group">
                             <label>生成数量 *</label>
-                            <input type="number" name="count" class="form-control" placeholder="请输入生成数量" min="1" max="1000" required>
+                            <input type="number" name="count" class="form-control" placeholder="请输入生成数量" min="1"
+                                max="1000" required>
                         </div>
                         <div class="form-group">
                             <label>有效期 (天数, 可选)</label>
-                            <input type="number" name="expiresDays" class="form-control" placeholder="留空则永久有效" min="1" max="3650">
+                            <input type="number" name="expiresDays" class="form-control" placeholder="留空则永久有效" min="1"
+                                max="3650">
                         </div>
                         <button type="submit" class="btn btn-primary">批量生成</button>
                     </form>
                     <div id="batchResult" class="result-box" style="display: none;">
                         <h4>批量生成成功</h4>
                         <p>成功生成 <strong id="batchTotal">0</strong> 个兑换码</p>
-                        <textarea id="batchCodes" readonly rows="5" class="form-control" style="margin: 10px 0;"></textarea>
+                        <textarea id="batchCodes" readonly rows="5" class="form-control"
+                            style="margin: 10px 0;"></textarea>
                         <button onclick="copyBatchCodes()" class="btn btn-sm btn-secondary">复制全部</button>
                         <button onclick="downloadCodes()" class="btn btn-sm btn-secondary">下载</button>
                     </div>
@@ -190,6 +200,10 @@
     <div id="toast" class="toast"></div>
 
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+    <script>
+        lucide.createIcons();
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

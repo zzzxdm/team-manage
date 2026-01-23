@@ -10,29 +10,29 @@
 <!-- 统计卡片 -->
 <div class="stats-container">
     <div class="stat-card">
-        <div class="stat-icon">👥</div>
-        <div class="stat-content">
+        <div class="stat-icon"><i data-lucide="users"></i></div>
+        <div class="stat-info-group">
             <div class="stat-value">{{ stats.total_teams }}</div>
             <div class="stat-label">Team 总数</div>
         </div>
     </div>
     <div class="stat-card stat-success">
-        <div class="stat-icon">✅</div>
-        <div class="stat-content">
+        <div class="stat-icon"><i data-lucide="check-circle"></i></div>
+        <div class="stat-info-group">
             <div class="stat-value">{{ stats.available_teams }}</div>
             <div class="stat-label">可用 Team</div>
         </div>
     </div>
     <div class="stat-card stat-info">
-        <div class="stat-icon">🎫</div>
-        <div class="stat-content">
+        <div class="stat-icon"><i data-lucide="ticket"></i></div>
+        <div class="stat-info-group">
             <div class="stat-value">{{ stats.total_codes }}</div>
             <div class="stat-label">兑换码总数</div>
         </div>
     </div>
     <div class="stat-card stat-warning">
-        <div class="stat-icon">📝</div>
-        <div class="stat-content">
+        <div class="stat-icon"><i data-lucide="clipboard-list"></i></div>
+        <div class="stat-info-group">
             <div class="stat-value">{{ stats.used_codes }}</div>
             <div class="stat-label">已使用兑换码</div>
         </div>
@@ -43,7 +43,9 @@
 <div class="content-section">
     <div class="section-header">
         <h3>Team 列表</h3>
-        <button onclick="showModal('importTeamModal')" class="btn btn-primary">导入 Team</button>
+        <button onclick="showModal('importTeamModal')" class="btn btn-primary">
+            <i data-lucide="plus-circle"></i> 导入 Team
+        </button>
     </div>
 
     {% if teams %}
@@ -94,14 +96,14 @@
                     <td>
                         <div class="action-buttons">
                             <button onclick="viewMembers({{ team.id }})" class="btn btn-sm btn-info" title="查看成员">
-                                成员
+                                <i data-lucide="users"></i> 成员
                             </button>
                             <button onclick="refreshTeam({{ team.id }})" class="btn btn-sm btn-secondary" title="刷新">
-                                刷新
+                                <i data-lucide="refresh-cw"></i> 刷新
                             </button>
-                            <button onclick="deleteTeam({{ team.id }}, '{{ team.email }}')"
+                            <button onclick="deleteTeam({{ team.id }}, '{{ team.email|escape_js }}')"
                                 class="btn btn-sm btn-danger" title="删除">
-                                删除
+                                <i data-lucide="trash-2"></i> 删除
                             </button>
                         </div>
                     </td>
