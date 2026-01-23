@@ -5,7 +5,7 @@ FastAPI 应用入口文件
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 import logging
 from pathlib import Path
@@ -19,12 +19,30 @@ from app.config import settings
 BASE_DIR = Path(__file__).resolve().parent.parent
 APP_DIR = BASE_DIR / "app"
 
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 # 创建 FastAPI 应用实例
 app = FastAPI(
     title="GPT Team 管理系统",
     description="ChatGPT Team 账号管理和兑换码自动邀请系统",
     version="0.1.0"
 )
+
+# 全局异常处理
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """ 处理 HTTP 异常 """
+    if exc.status_code in [401, 403]:
+        # 检查是否是 HTML 请求
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            return RedirectResponse(url="/login")
+    
+    # 默认返回 JSON 响应（FastAPI 的默认行为）
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
 
 # 配置 Session 中间件
 app.add_middleware(

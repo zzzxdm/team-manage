@@ -53,7 +53,8 @@ def require_admin(request: Request) -> dict:
 
     if not user:
         logger.warning("未登录用户尝试访问管理员资源")
-        # 返回 401 而不是重定向，让前端处理
+        # 抛出 401 异常，由 app/main.py 中的全局异常处理程序处理
+        # 如果是 HTML 请求会重定向到登录页，否则返回 JSON
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="未登录，请先登录"
