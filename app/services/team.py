@@ -43,10 +43,10 @@ class TeamService:
             access_token: AT Token
             db_session: 数据库会话
             email: 邮箱 (可选,如果不提供则从 Token 中提取)
-            account_id: Account ID (可选,如果不提供则从 API 获取)
+            account_id: Account ID (可选,如果不提供则从 API 获取并导入所有活跃的)
 
         Returns:
-            结果字典,包含 success, team_id, message, error
+            结果字典,包含 success, team_id (第一个导入的), message, error
         """
         try:
             # 1. 如果没有提供邮箱,从 Token 中提取
@@ -84,17 +84,17 @@ class TeamService:
                     "error": "该 Token 没有关联任何 Team 账户"
                 }
 
-            # 3. 选择要使用的 account_id
-            selected_account = None
+            # 3. 确定要导入的账户列表
+            accounts_to_import = []
 
             if account_id:
-                # 如果用户指定了 account_id,查找对应的账户
+                # 如果用户指定了 account_id, 查找对应的账户
                 for acc in team_accounts:
                     if acc["account_id"] == account_id:
-                        selected_account = acc
+                        accounts_to_import.append(acc)
                         break
 
-                if not selected_account:
+                if not accounts_to_import:
                     return {
                         "success": False,
                         "team_id": None,
@@ -102,102 +102,135 @@ class TeamService:
                         "error": f"指定的 account_id {account_id} 不存在"
                     }
             else:
-                # 默认使用第一个活跃的 Team
+                # 没指定 ID，导入所有活跃的 Team
                 for acc in team_accounts:
                     if acc["has_active_subscription"]:
-                        selected_account = acc
-                        break
+                        accounts_to_import.append(acc)
+                
+                # 如果一个活跃的都没找到，保底使用第一个
+                if not accounts_to_import:
+                    accounts_to_import.append(team_accounts[0])
 
-                # 如果没有活跃的,使用第一个
-                if not selected_account:
-                    selected_account = team_accounts[0]
+            # 4. 循环处理这些账户
+            imported_ids = []
+            skipped_ids = []
+            
+            for selected_account in accounts_to_import:
+                # 检查是否已存在 (根据邮箱和 account_id)
+                stmt = select(Team).where(
+                    Team.email == email,
+                    Team.account_id == selected_account["account_id"]
+                )
+                result = await db_session.execute(stmt)
+                existing_team = result.scalar_one_or_none()
 
-            # 4. 获取成员列表
-            members_result = await self.chatgpt_service.get_members(
-                access_token,
-                selected_account["account_id"],
-                db_session
-            )
+                if existing_team:
+                    skipped_ids.append(selected_account["account_id"])
+                    continue
 
-            current_members = 0
-            if members_result["success"]:
-                current_members = members_result["total"]
+                # 获取成员列表
+                members_result = await self.chatgpt_service.get_members(
+                    access_token,
+                    selected_account["account_id"],
+                    db_session
+                )
 
-            # 5. 解析过期时间
-            expires_at = None
-            if selected_account["expires_at"]:
-                try:
-                    # ISO 8601 格式: 2026-02-21T23:10:05+00:00
-                    expires_at = datetime.fromisoformat(
-                        selected_account["expires_at"].replace("+00:00", "")
+                current_members = 0
+                if members_result["success"]:
+                    current_members = members_result["total"]
+
+                # 解析过期时间
+                expires_at = None
+                if selected_account["expires_at"]:
+                    try:
+                        # ISO 8601 格式: 2026-02-21T23:10:05+00:00
+                        expires_at = datetime.fromisoformat(
+                            selected_account["expires_at"].replace("+00:00", "")
+                        )
+                    except Exception as e:
+                        logger.warning(f"解析过期时间失败: {e}")
+
+                # 确定状态
+                status = "active"
+                if current_members >= 6:
+                    status = "full"
+                elif expires_at and expires_at < datetime.now():
+                    status = "expired"
+
+                # 加密 AT Token
+                encrypted_token = encryption_service.encrypt_token(access_token)
+
+                # 创建 Team 记录
+                team = Team(
+                    email=email,
+                    access_token_encrypted=encrypted_token,
+                    encryption_key_id="default",
+                    account_id=selected_account["account_id"],
+                    team_name=selected_account["name"],
+                    plan_type=selected_account["plan_type"],
+                    subscription_plan=selected_account["subscription_plan"],
+                    expires_at=expires_at,
+                    current_members=current_members,
+                    max_members=6,
+                    status=status,
+                    last_sync=get_now()
+                )
+
+                db_session.add(team)
+                await db_session.flush()  # 获取 team.id
+
+                # 创建 TeamAccount 记录 (保存所有 Team 账户)
+                for acc in team_accounts:
+                    team_account = TeamAccount(
+                        team_id=team.id,
+                        account_id=acc["account_id"],
+                        account_name=acc["name"],
+                        is_primary=(acc["account_id"] == selected_account["account_id"])
                     )
-                except Exception as e:
-                    logger.warning(f"解析过期时间失败: {e}")
+                    db_session.add(team_account)
+                
+                imported_ids.append(team.id)
 
-            # 6. 确定状态
-            status = "active"
-            if current_members >= 6:
-                status = "full"
-            elif expires_at and expires_at < datetime.now():
-                status = "expired"
-
-            # 7. 加密 AT Token
-            encrypted_token = encryption_service.encrypt_token(access_token)
-
-            # 8. 检查是否已存在 (根据邮箱和 account_id)
-            stmt = select(Team).where(
-                Team.email == email,
-                Team.account_id == selected_account["account_id"]
-            )
-            result = await db_session.execute(stmt)
-            existing_team = result.scalar_one_or_none()
-
-            if existing_team:
+            # 5. 返回结果总结
+            if not imported_ids and skipped_ids:
                 return {
                     "success": False,
-                    "team_id": existing_team.id,
+                    "team_id": None,
                     "message": None,
-                    "error": f"该 Team 已存在 (ID: {existing_team.id})"
+                    "error": f"共发现 {len(skipped_ids)} 个 Team 账号,但均已在系统中"
                 }
-
-            # 9. 创建 Team 记录
-            team = Team(
-                email=email,
-                access_token_encrypted=encrypted_token,
-                encryption_key_id="default",
-                account_id=selected_account["account_id"],
-                team_name=selected_account["name"],
-                plan_type=selected_account["plan_type"],
-                subscription_plan=selected_account["subscription_plan"],
-                expires_at=expires_at,
-                current_members=current_members,
-                max_members=6,
-                status=status,
-                last_sync=get_now()
-            )
-
-            db_session.add(team)
-            await db_session.flush()  # 获取 team.id
-
-            # 10. 创建 TeamAccount 记录 (保存所有 Team 账户)
-            for idx, acc in enumerate(team_accounts):
-                team_account = TeamAccount(
-                    team_id=team.id,
-                    account_id=acc["account_id"],
-                    account_name=acc["name"],
-                    is_primary=(acc["account_id"] == selected_account["account_id"])
-                )
-                db_session.add(team_account)
+            
+            if not imported_ids:
+                return {
+                    "success": False,
+                    "team_id": None,
+                    "message": None,
+                    "error": "未发现可导入的 Team 账号"
+                }
 
             await db_session.commit()
 
-            logger.info(f"Team 导入成功: {email} -> {selected_account['account_id']}")
+            message = f"成功导入 {len(imported_ids)} 个 Team 账号"
+            if skipped_ids:
+                message += f" (另有 {len(skipped_ids)} 个已存在)"
+
+            logger.info(f"Team 导入成功: {email}, 共 {len(imported_ids)} 个账号")
 
             return {
                 "success": True,
-                "team_id": team.id,
-                "message": f"Team 导入成功 (共 {len(team_accounts)} 个账户)",
+                "team_id": imported_ids[0],
+                "message": message,
                 "error": None
+            }
+
+        except Exception as e:
+            await db_session.rollback()
+            logger.error(f"Team 导入失败: {e}")
+            return {
+                "success": False,
+                "team_id": None,
+                "message": None,
+                "error": f"导入失败: {str(e)}"
             }
 
         except Exception as e:
