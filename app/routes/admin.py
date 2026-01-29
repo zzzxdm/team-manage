@@ -64,45 +64,30 @@ async def admin_dashboard(
 ):
     """
     管理员面板首页
-
-    Args:
-        request: FastAPI Request 对象
-        page: 页码
-        search: 搜索词
-        db: 数据库会话
-        current_user: 当前用户（需要登录）
-
-    Returns:
-        管理员面板首页 HTML
     """
     try:
-        # 导入模板引擎
         from app.main import templates
+        logger.info(f"管理员访问控制台, search={search}, page={page}")
 
-        logger.info(f"管理员访问控制台, search={search}")
-
-        # 获取 Team 列表 (分页)
+        # 设置每页数量
         per_page = 20
+        
+        # 获取 Team 列表 (分页)
         teams_result = await team_service.get_all_teams(db, page=page, per_page=per_page, search=search)
-        teams = teams_result.get("teams", [])
-        total_teams = teams_result.get("total", 0)
-        total_pages = teams_result.get("total_pages", 1)
-        current_page = teams_result.get("current_page", 1)
-
-        # 获取所有 Team 用于统计可用数量 (或者未来增加专门的统计接口)
+        
+        # 获取统计信息 (可以使用专用统计方法优化)
         all_teams_result = await team_service.get_all_teams(db, page=1, per_page=10000)
         all_teams = all_teams_result.get("teams", [])
-
-        # 获取兑换码统计
+        
         all_codes_result = await redemption_service.get_all_codes(db, page=1, per_page=10000)
         all_codes = all_codes_result.get("codes", [])
 
         # 计算统计数据
         stats = {
             "total_teams": len(all_teams),
-            "available_teams": len([t for t in all_teams if t["status"] == "active" and t["current_members"] < t["max_members"]]),
+            "available_teams": len([t for t in all_teams if t.get("status") == "active" and t.get("current_members", 0) < t.get("max_members", 6)]),
             "total_codes": len(all_codes),
-            "used_codes": len([c for c in all_codes if c["status"] == "used"])
+            "used_codes": len([c for c in all_codes if c.get("status") == "used"])
         }
 
         return templates.TemplateResponse(
@@ -111,20 +96,21 @@ async def admin_dashboard(
                 "request": request,
                 "user": current_user,
                 "active_page": "dashboard",
-                "teams": teams,
+                "teams": teams_result.get("teams", []),
                 "stats": stats,
                 "search": search,
                 "pagination": {
-                    "current_page": current_page,
-                    "total_pages": total_pages,
-                    "total": total_teams,
+                    "current_page": teams_result.get("current_page", page),
+                    "total_pages": teams_result.get("total_pages", 1),
+                    "total": teams_result.get("total", 0),
                     "per_page": per_page
                 }
             }
         )
-
     except Exception as e:
         logger.error(f"加载管理员面板失败: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"加载管理员面板失败: {str(e)}"

@@ -43,23 +43,21 @@
 <div class="content-section">
     <div class="section-header">
         <h3>Team 列表</h3>
-        <div class="header-actions">
-            <form action="/admin" method="get" class="search-form" style="margin-right: 1rem;">
-                <div class="search-input-group">
-                    <input type="text" name="search" value="{{ search or '' }}" placeholder="搜索邮箱、Account ID 或名称..."
-                        class="btn-sm">
-                    <button type="submit" class="btn btn-sm btn-secondary">
-                        <i data-lucide="search" style="width: 14px; height: 14px;"></i>
-                    </button>
+        <div class="header-group">
+            <form action="/admin" method="get" class="search-form">
+                <div class="input-group-clean">
+                    <i data-lucide="search" style="width: 14px; height: 14px;"></i>
+                    <input type="text" name="search" value="{{ search or '' }}" placeholder="搜索邮箱/Account ID..."
+                        style="width: 200px;">
                     {% if search %}
-                    <a href="/admin" class="btn btn-sm btn-danger" title="清除搜索">
-                        <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                    <a href="/admin" title="清除搜索">
+                        <i data-lucide="x-circle" style="width: 14px; height: 14px;"></i>
                     </a>
                     {% endif %}
                 </div>
             </form>
             <button onclick="showModal('importTeamModal')" class="btn btn-primary">
-                <i data-lucide="plus-circle"></i> 导入 Team
+                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> 导入 Team
             </button>
         </div>
     </div>
@@ -115,15 +113,16 @@
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <button onclick="viewMembers({{ team.id }}, '{{ team.email }}')" class="btn btn-sm btn-info"
-                                title="查看成员">
+                            <button class="btn btn-sm btn-info btn-view-members" data-id="{{ team.id }}"
+                                data-email="{{ team.email }}" title="查看成员">
                                 <i data-lucide="users"></i> 成员
                             </button>
-                            <button onclick="refreshTeam({{ team.id }})" class="btn btn-sm btn-secondary" title="刷新">
+                            <button class="btn btn-sm btn-secondary btn-refresh-team" data-id="{{ team.id }}"
+                                title="刷新">
                                 <i data-lucide="refresh-cw"></i> 刷新
                             </button>
-                            <button onclick="deleteTeam({{ team.id }}, '{{ team.email|escape_js }}')"
-                                class="btn btn-sm btn-danger" title="删除">
+                            <button class="btn btn-sm btn-danger btn-delete-team" data-id="{{ team.id }}"
+                                data-email="{{ team.email }}" title="删除">
                                 <i data-lucide="trash-2"></i> 删除
                             </button>
                         </div>
@@ -135,7 +134,7 @@
     </div>
 
     <!-- 分页 -->
-    {% if pagination.total_pages > 1 %}
+    {% if pagination and pagination.total_pages > 1 %}
     <div class="pagination">
         {% set search_param = '&search=' + search if search else '' %}
 
@@ -166,54 +165,37 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
-    .header-actions {
-        display: flex;
-        align-items: center;
-    }
-
-    .search-input-group {
-        display: flex;
-        align-items: center;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        padding: 2px;
-    }
-
-    .search-input-group input {
-        border: none;
-        background: transparent;
-        padding: 0.4rem 0.8rem;
-        outline: none;
-        color: var(--text-primary);
-        min-width: 250px;
-    }
-
-    .search-input-group .btn {
-        padding: 0.4rem 0.6rem;
-        border-radius: 4px;
-    }
-
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 1.5rem;
-        padding: 1rem;
-    }
-
-    .pagination-info {
-        margin: 0 1rem;
-        font-size: 0.9rem;
-        color: var(--text-muted);
-    }
-</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // 绑定查看成员按钮
+        document.querySelectorAll('.btn-view-members').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
+                const email = btn.getAttribute('data-email');
+                viewMembers(id, email);
+            });
+        });
+
+        // 绑定刷新按钮
+        document.querySelectorAll('.btn-refresh-team').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
+                refreshTeam(id);
+            });
+        });
+
+        // 绑定删除按钮
+        document.querySelectorAll('.btn-delete-team').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-id');
+                const email = btn.getAttribute('data-email');
+                deleteTeam(id, email);
+            });
+        });
+    });
 
     async function refreshTeam(teamId) {
         if (!confirm('确定要刷新此 Team 的信息吗?')) {

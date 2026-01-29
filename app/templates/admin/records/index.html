@@ -70,12 +70,12 @@
             <label for="end_date">结束日期</label>
             <input type="date" id="end_date" name="end_date" value="{{ filters.end_date or '' }}" class="form-control">
         </div>
-        <div class="form-actions" style="display: flex; gap: 0.5rem; align-items: flex-end;">
+        <div class="form-actions" style="display: flex; gap: 0.5rem;">
             <button type="submit" class="btn btn-primary" style="flex: 1;">
-                <i data-lucide="search"></i> 搜索
+                <i data-lucide="search" style="width: 16px; height: 16px;"></i> 搜索
             </button>
             <a href="/admin/records" class="btn btn-secondary">
-                <i data-lucide="rotate-ccw"></i> 重置
+                <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i> 重置
             </a>
         </div>
     </form>
@@ -125,20 +125,20 @@
     </div>
 
     <!-- 分页 -->
-    {% if pagination.total_pages > 1 %}
+    {% if pagination and pagination.total_pages > 1 %}
     <div class="pagination">
         {% if pagination.current_page > 1 %}
         <a href="?page=1{% if filters.email %}&email={{ filters.email }}{% endif %}{% if filters.code %}&code={{ filters.code }}{% endif %}{% if filters.team_id %}&team_id={{ filters.team_id }}{% endif %}{% if filters.start_date %}&start_date={{ filters.start_date }}{% endif %}{% if filters.end_date %}&end_date={{ filters.end_date }}{% endif %}"
             class="btn btn-sm btn-secondary">首页</a>
         <a href="?page={{ pagination.current_page - 1 }}{% if filters.email %}&email={{ filters.email }}{% endif %}{% if filters.code %}&code={{ filters.code }}{% endif %}{% if filters.team_id %}&team_id={{ filters.team_id }}{% endif %}{% if filters.start_date %}&start_date={{ filters.start_date }}{% endif %}{% if filters.end_date %}&end_date={{ filters.end_date }}{% endif %}"
-            class="btn btn-sm btn-secondary"><i data-lucide="chevron-left"></i></a>
+            class="btn btn-sm btn-secondary"><i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i></a>
         {% endif %}
 
         <span class="pagination-info">第 {{ pagination.current_page }} / {{ pagination.total_pages }} 页</span>
 
         {% if pagination.current_page < pagination.total_pages %} <a
             href="?page={{ pagination.current_page + 1 }}{% if filters.email %}&email={{ filters.email }}{% endif %}{% if filters.code %}&code={{ filters.code }}{% endif %}{% if filters.team_id %}&team_id={{ filters.team_id }}{% endif %}{% if filters.start_date %}&start_date={{ filters.start_date }}{% endif %}{% if filters.end_date %}&end_date={{ filters.end_date }}{% endif %}"
-            class="btn btn-sm btn-secondary"><i data-lucide="chevron-right"></i></a>
+            class="btn btn-sm btn-secondary"><i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></a>
             <a href="?page={{ pagination.total_pages }}{% if filters.email %}&email={{ filters.email }}{% endif %}{% if filters.code %}&code={{ filters.code }}{% endif %}{% if filters.team_id %}&team_id={{ filters.team_id }}{% endif %}{% if filters.start_date %}&start_date={{ filters.start_date }}{% endif %}{% if filters.end_date %}&end_date={{ filters.end_date }}{% endif %}"
                 class="btn btn-sm btn-secondary">末页</a>
             {% endif %}
@@ -155,72 +155,4 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
-    .search-form {
-        background-color: white;
-        padding: 1.5rem;
-        border-radius: 8px;
-        box-shadow: var(--shadow);
-    }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .form-row:last-child {
-        margin-bottom: 0;
-    }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .form-group label {
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-        color: var(--text-color);
-    }
-
-    .form-group input {
-        padding: 0.5rem;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        font-size: 0.9rem;
-    }
-
-    .form-group input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-    }
-
-    .record-info {
-        font-size: 0.9rem;
-        color: var(--secondary-color);
-    }
-
-    .account-id {
-        font-size: 0.85rem;
-        color: var(--secondary-color);
-    }
-
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 1.5rem;
-        padding: 1rem;
-    }
-
-    .pagination-info {
-        margin: 0 1rem;
-        font-size: 0.9rem;
-        color: var(--secondary-color);
-    }
-</style>
 {% endblock %}

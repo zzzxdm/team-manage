@@ -41,31 +41,35 @@
 
 <!-- 操作栏 -->
 <div class="section-header">
-    <div class="filter-and-search">
-        <div class="filter-buttons">
-            <button onclick="filterByStatus('all')" class="btn btn-sm btn-secondary active" id="filter-all">全部</button>
-            <button onclick="filterByStatus('unused')" class="btn btn-sm btn-success" id="filter-unused">未使用</button>
-            <button onclick="filterByStatus('used')" class="btn btn-sm btn-info" id="filter-used">已使用</button>
-            <button onclick="filterByStatus('expired')" class="btn btn-sm btn-danger" id="filter-expired">已过期</button>
+    <div class="header-group">
+        <div class="filter-tabs">
+            <button onclick="filterByStatus('all')" class="filter-tab active" id="filter-all">全部</button>
+            <button onclick="filterByStatus('unused')" class="filter-tab" id="filter-unused">未使用</button>
+            <button onclick="filterByStatus('used')" class="filter-tab" id="filter-used">已使用</button>
+            <button onclick="filterByStatus('expired')" class="filter-tab" id="filter-expired">已过期</button>
         </div>
 
         <form action="/admin/codes" method="get" class="search-form">
-            <div class="search-input-group">
-                <input type="text" name="search" value="{{ search or '' }}" placeholder="搜索兑换码或邮箱..." class="btn-sm">
-                <button type="submit" class="btn btn-sm btn-secondary">
-                    <i data-lucide="search" style="width: 14px; height: 14px;"></i>
-                </button>
+            <div class="input-group-clean">
+                <i data-lucide="search" style="width: 14px; height: 14px;"></i>
+                <input type="text" name="search" value="{{ search or '' }}" placeholder="搜索兑换码..."
+                    style="width: 180px;">
                 {% if search %}
-                <a href="/admin/codes" class="btn btn-sm btn-danger" title="清除搜索">
-                    <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                <a href="/admin/codes" title="清除搜索">
+                    <i data-lucide="x-circle" style="width: 14px; height: 14px;"></i>
                 </a>
                 {% endif %}
             </div>
         </form>
     </div>
-    <div class="action-buttons">
-        <button onclick="showModal('generateCodeModal')" class="btn btn-primary">生成兑换码</button>
-        <button onclick="exportCodes()" class="btn btn-secondary">导出兑换码</button>
+
+    <div class="header-group">
+        <button onclick="showModal('generateCodeModal')" class="btn btn-primary">
+            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> 生成兑换码
+        </button>
+        <button onclick="exportCodes()" class="btn btn-secondary">
+            <i data-lucide="download" style="width: 16px; height: 16px;"></i> 导出
+        </button>
     </div>
 </div>
 
@@ -126,7 +130,7 @@
     </div>
 
     <!-- 分页 -->
-    {% if pagination.total_pages > 1 %}
+    {% if pagination and pagination.total_pages > 1 %}
     <div class="pagination">
         {% set search_param = '&search=' + search if search else '' %}
 
@@ -158,52 +162,6 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
-    .filter-and-search {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        flex-wrap: wrap;
-    }
-
-    .search-input-group {
-        display: flex;
-        align-items: center;
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        padding: 2px;
-    }
-
-    .search-input-group input {
-        border: none;
-        background: transparent;
-        padding: 0.4rem 0.8rem;
-        outline: none;
-        color: var(--text-primary);
-        min-width: 200px;
-    }
-
-    .search-input-group .btn {
-        padding: 0.4rem 0.6rem;
-        border-radius: 4px;
-    }
-
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 1.5rem;
-        padding: 1rem;
-    }
-
-    .pagination-info {
-        margin: 0 1rem;
-        font-size: 0.9rem;
-        color: var(--text-muted);
-    }
-</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -216,7 +174,7 @@
         currentFilter = status;
 
         // 更新按钮状态
-        document.querySelectorAll('.filter-buttons .btn').forEach(btn => {
+        document.querySelectorAll('.filter-tab').forEach(btn => {
             btn.classList.remove('active');
         });
         document.getElementById(`filter-${status}`).classList.add('active');
