@@ -29,6 +29,20 @@ class TeamService:
         self.token_parser = TokenParser()
         self.jwt_parser = JWTParser()
 
+    async def _check_and_handle_banned(self, result: Dict[str, Any], team: Team, db_session: AsyncSession) -> bool:
+        """
+        检查结果是否表示账号被封禁,如果是则更新状态
+        
+        Returns:
+            bool: 是否已封禁
+        """
+        if result.get("error_code") == "account_deactivated":
+            logger.warning(f"检测到账号封禁 (account_deactivated),更新 Team {team.id} 状态为 banned")
+            team.status = "banned"
+            await db_session.commit()
+            return True
+        return False
+
     async def import_team_single(
         self,
         access_token: str,
@@ -373,6 +387,14 @@ class TeamService:
             )
 
             if not account_result["success"]:
+                # 检查是否封号
+                if await self._check_and_handle_banned(account_result, team, db_session):
+                    return {
+                        "success": False,
+                        "message": None,
+                        "error": "账号已封禁 (account_deactivated)"
+                    }
+
                 # 更新状态为 error
                 team.status = "error"
                 await db_session.commit()
@@ -696,6 +718,14 @@ class TeamService:
             )
 
             if not revoke_result["success"]:
+                # 检查是否封号
+                if await self._check_and_handle_banned(revoke_result, team, db_session):
+                    return {
+                        "success": False,
+                        "message": None,
+                        "error": "账号已封禁 (account_deactivated)"
+                    }
+
                 return {
                     "success": False,
                     "message": None,
@@ -794,6 +824,14 @@ class TeamService:
             )
 
             if not invite_result["success"]:
+                # 检查是否封号
+                if await self._check_and_handle_banned(invite_result, team, db_session):
+                    return {
+                        "success": False,
+                        "message": None,
+                        "error": "账号已封禁 (account_deactivated)"
+                    }
+
                 return {
                     "success": False,
                     "message": None,
@@ -874,6 +912,14 @@ class TeamService:
             )
 
             if not delete_result["success"]:
+                # 检查是否封号
+                if await self._check_and_handle_banned(delete_result, team, db_session):
+                    return {
+                        "success": False,
+                        "message": None,
+                        "error": "账号已封禁 (account_deactivated)"
+                    }
+
                 return {
                     "success": False,
                     "message": None,
