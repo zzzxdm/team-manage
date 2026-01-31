@@ -270,8 +270,8 @@ class RedemptionService:
                     "error": None
                 }
 
-            # 3. 检查是否过期
-            if redemption_code.expires_at:
+            # 3. 检查是否过期 (仅针对未使用的兑换码执行首次激活截止时间检查)
+            if redemption_code.status == "unused" and redemption_code.expires_at:
                 if redemption_code.expires_at < get_now():
                     # 更新状态为 expired
                     redemption_code.status = "expired"
@@ -280,7 +280,7 @@ class RedemptionService:
                     return {
                         "success": True,
                         "valid": False,
-                        "reason": "兑换码已过期",
+                        "reason": "兑换码已超过首次兑换截止时间",
                         "redemption_code": None,
                         "error": None
                     }
