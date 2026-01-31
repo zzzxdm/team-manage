@@ -58,12 +58,25 @@ class TeamService:
             
         # 处理刷新失败 (仅针对刷新场景)
         if error_code == "invalid_grant" or "invalid_grant" in error_msg:
-            logger.warning(f"检测到刷新 Token 失败 (invalid_grant),更新 Team {team.id} ({team.email}) 状态为 error")
-            team.status = "error"
+            logger.warning(f"检测到刷新 Token 失败 (invalid_grant),累加 Team {team.id} ({team.email}) 错误次数")
+            team.error_count = (team.error_count or 0) + 1
+            if team.error_count >= 3:
+                logger.error(f"Team {team.id} 连续错误 {team.error_count} 次，标记为 error")
+                team.status = "error"
             await db_session.commit()
             return True
             
         return False
+        
+    async def _reset_error_status(self, team: Team, db_session: AsyncSession) -> None:
+        """
+        成功执行请求后重置错误计数并尝试从 error 状态恢复
+        """
+        team.error_count = 0
+        if team.status == "error":
+            logger.info(f"Team {team.id} ({team.email}) 请求成功, 将状态从 error 恢复为 active")
+            team.status = "active"
+        await db_session.commit()
 
     async def ensure_access_token(self, team: Team, db_session: AsyncSession) -> Optional[str]:
         """
@@ -99,10 +112,8 @@ class TeamService:
                 new_at = refresh_result["access_token"]
                 logger.info(f"Team {team.id} 通过 session_token 成功刷新 AT")
                 team.access_token_encrypted = encryption_service.encrypt_token(new_at)
-                # 如果之前是 error 状态,恢复为 active (除非已满或过期)
-                if team.status == "error":
-                    team.status = "active"
-                await db_session.commit()
+                # 成功刷新，重置错误状态
+                await self._reset_error_status(team, db_session)
                 return new_at
             else:
                 # 检查是否为致命错误 (如 token_invalidated)
@@ -122,19 +133,21 @@ class TeamService:
                 team.access_token_encrypted = encryption_service.encrypt_token(new_at)
                 if new_rt:
                     team.refresh_token_encrypted = encryption_service.encrypt_token(new_rt)
-                # 如果之前是 error 状态,恢复为 active
-                if team.status == "error":
-                    team.status = "active"
-                await db_session.commit()
+                # 成功刷新，重置错误状态
+                await self._reset_error_status(team, db_session)
                 return new_at
             else:
                 # 检查是否为致命错误 (如 account_deactivated)
                 if await self._handle_api_error(refresh_result, team, db_session):
                     return None
         
-        logger.warning(f"Team {team.id} Token 已过期且刷新失败")
         if team.status != "banned":
-            team.status = "error"
+            team.error_count = (team.error_count or 0) + 1
+            if team.error_count >= 3:
+                logger.error(f"Team {team.id} Token 过期且无法刷新, 连续错误 {team.error_count} 次, 更新状态为 error")
+                team.status = "error"
+            else:
+                logger.warning(f"Team {team.id} Token 过期且无法刷新, 错误次数: {team.error_count}")
         await db_session.commit()
         return None
 
@@ -645,13 +658,16 @@ class TeamService:
                         "error": error_msg
                     }
 
-                # 更新状态为 error
-                team.status = "error"
+                # 累加错误次数
+                team.error_count = (team.error_count or 0) + 1
+                if team.error_count >= 3:
+                    logger.error(f"Team {team.id} 获取账户信息连续失败 {team.error_count} 次，更新状态为 error")
+                    team.status = "error"
                 await db_session.commit()
                 return {
                     "success": False,
                     "message": None,
-                    "error": f"获取账户信息失败: {account_result['error']}"
+                    "error": f"获取账户信息失败: {account_result['error']} (错误次数: {team.error_count})"
                 }
 
             # 4. 查找当前使用的 account
@@ -707,13 +723,16 @@ class TeamService:
                         "error": error_msg
                     }
                 
-                # 其他错误,仅标记为 error
-                team.status = "error"
+                # 其他错误, 累加错误次数
+                team.error_count = (team.error_count or 0) + 1
+                if team.error_count >= 3:
+                    logger.error(f"Team {team.id} 获取成员列表连续失败 {team.error_count} 次，更新状态为 error")
+                    team.status = "error"
                 await db_session.commit()
                 return {
                     "success": False,
                     "message": None,
-                    "error": f"获取成员列表失败: {members_result['error']}"
+                    "error": f"获取成员列表失败: {members_result['error']} (错误次数: {team.error_count})"
                 }
 
             # 6. 解析过期时间
@@ -741,6 +760,7 @@ class TeamService:
             team.expires_at = expires_at
             team.current_members = current_members
             team.status = status
+            team.error_count = 0  # 同步成功，重置错误次数
             team.last_sync = get_now()
 
             await db_session.commit()
@@ -954,6 +974,9 @@ class TeamService:
 
             logger.info(f"获取 Team {team_id} 成员列表成功: 共 {len(all_members)} 个成员 (已加入: {members_result['total']})")
 
+            # 6. 请求成功，重置错误状态
+            await self._reset_error_status(team, db_session)
+
             return {
                 "success": True,
                 "members": all_members,
@@ -1049,6 +1072,9 @@ class TeamService:
             await db_session.commit()
 
             logger.info(f"撤回邀请成功: {email} from Team {team_id}")
+
+            # 5. 请求成功，重置错误状态
+            await self._reset_error_status(team, db_session)
 
             return {
                 "success": True,
@@ -1157,6 +1183,9 @@ class TeamService:
 
             logger.info(f"添加成员成功: {email} -> Team {team_id}")
 
+            # 6. 请求成功，重置错误状态
+            await self._reset_error_status(team, db_session)
+
             return {
                 "success": True,
                 "message": f"邀请已发送到 {email}",
@@ -1252,6 +1281,9 @@ class TeamService:
             await db_session.commit()
 
             logger.info(f"删除成员成功: {user_id} from Team {team_id}")
+
+            # 5. 请求成功，重置错误状态
+            await self._reset_error_status(team, db_session)
 
             return {
                 "success": True,

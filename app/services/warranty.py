@@ -328,22 +328,21 @@ class WarrantyService:
                 stmt = select(Team).where(Team.id == record.team_id)
                 result = await db_session.execute(stmt)
                 team = result.scalar_one_or_none()
-                if team and team.status in ["banned", "error"]:
+                if team and team.status == "banned":
                     has_banned_team = True
                     break
-
             if has_banned_team:
                 return {
                     "success": True,
                     "can_reuse": True,
-                    "reason": "之前加入的 Team 已失效，可使用质保重复兑换",
+                    "reason": "之前加入的 Team 已封号，可使用质保重复兑换",
                     "error": None
                 }
             else:
                 return {
                     "success": True,
                     "can_reuse": False,
-                    "reason": "未找到被封或异常记录，且质保不支持正常过期的重复兑换",
+                    "reason": "未找到被封号记录，且质保不支持正常过期或异常提示的重复兑换",
                     "error": None
                 }
 
