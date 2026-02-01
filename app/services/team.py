@@ -295,8 +295,14 @@ class TeamService:
                     skipped_ids.append(selected_account["account_id"])
                     continue
 
-                # 获取成员列表
+                # 获取成员列表 (包含已加入和待加入)
                 members_result = await self.chatgpt_service.get_members(
+                    access_token,
+                    selected_account["account_id"],
+                    db_session
+                )
+                
+                invites_result = await self.chatgpt_service.get_invites(
                     access_token,
                     selected_account["account_id"],
                     db_session
@@ -304,7 +310,9 @@ class TeamService:
 
                 current_members = 0
                 if members_result["success"]:
-                    current_members = members_result["total"]
+                    current_members += members_result["total"]
+                if invites_result["success"]:
+                    current_members += invites_result["total"]
 
                 # 解析过期时间
                 expires_at = None
@@ -698,8 +706,14 @@ class TeamService:
                     "error": "该 Token 没有关联任何 Team 账户"
                 }
 
-            # 5. 获取成员列表
+            # 5. 获取成员列表 (包含已加入和待加入)
             members_result = await self.chatgpt_service.get_members(
+                access_token,
+                current_account["account_id"],
+                db_session
+            )
+            
+            invites_result = await self.chatgpt_service.get_invites(
                 access_token,
                 current_account["account_id"],
                 db_session
@@ -707,7 +721,10 @@ class TeamService:
 
             current_members = 0
             if members_result["success"]:
-                current_members = members_result["total"]
+                current_members += members_result["total"]
+            
+            if invites_result["success"]:
+                current_members += invites_result["total"]
             else:
                 # 检查是否封号或 Token 失效
                 if await self._handle_api_error(members_result, team, db_session):
