@@ -212,6 +212,7 @@ class TeamService:
                 return {
                     "success": False,
                     "team_id": None,
+                    "email": email,
                     "message": None,
                     "error": "缺少有效的 Access Token，且无法通过 Session/Refresh Token 刷新"
                 }
@@ -223,6 +224,7 @@ class TeamService:
                     return {
                         "success": False,
                         "team_id": None,
+                        "email": None,
                         "message": None,
                         "error": "无法从 Token 中提取邮箱,请手动提供邮箱"
                     }
@@ -277,6 +279,7 @@ class TeamService:
                     return {
                         "success": False,
                         "team_id": None,
+                        "email": email,
                         "message": None,
                         "error": f"获取账户信息失败: {account_result['error']}"
                     }
@@ -285,6 +288,7 @@ class TeamService:
                     return {
                         "success": False,
                         "team_id": None,
+                        "email": email,
                         "message": None,
                         "error": "该 Token 没有关联任何 Team 账户"
                     }
@@ -389,6 +393,7 @@ class TeamService:
                 return {
                     "success": False,
                     "team_id": None,
+                    "email": email,
                     "message": None,
                     "error": f"共发现 {len(skipped_ids)} 个 Team 账号,但均已在系统中"
                 }
@@ -397,6 +402,7 @@ class TeamService:
                 return {
                     "success": False,
                     "team_id": None,
+                    "email": email,
                     "message": None,
                     "error": "未发现可导入的 Team 账号"
                 }
@@ -412,6 +418,7 @@ class TeamService:
             return {
                 "success": True,
                 "team_id": imported_ids[0],
+                "email": email,
                 "message": message,
                 "error": None
             }
@@ -422,6 +429,7 @@ class TeamService:
             return {
                 "success": False,
                 "team_id": None,
+                "email": email,
                 "message": None,
                 "error": f"导入失败: {str(e)}"
             }
@@ -605,7 +613,7 @@ class TeamService:
                     "success_count": success_count,
                     "failed_count": failed_count,
                     "last_result": {
-                        "email": data.get("email", "未知"),
+                        "email": result.get("email") or data.get("email") or "未知",
                         "account_id": data.get("account_id", "未指定"),
                         "success": result["success"],
                         "team_id": result["team_id"],
